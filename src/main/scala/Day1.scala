@@ -3,10 +3,10 @@ import scala.io.Source
 object Day1 {
 
   def solve(lines: List[String], n: Int): AnyVal = {
-    lines.map(l => Integer.parseInt(l))
+    lines.map(_.toInt)
       .sorted
       .combinations(n)
-      .dropWhile(seq => seq.sum != 2020)
+      .dropWhile(_.sum != 2020)
       .take(1)
       .flatten
       .product
