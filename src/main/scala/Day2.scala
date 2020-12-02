@@ -5,9 +5,9 @@ object Day2 {
   case class Data(low: Int, high: Int, char: Char, password: String)
 
   def parseString(line: String): Data = {
-    val pattern = "([0-9]+)-([0-9]+) ([A-Za-z]): ([A-Za-z]+)".r
+    val pattern = """(\d+)-(\d+) (\w): (\w+)""".r
     val pattern(low, high, char, password) = line
-    Data(low.toInt, high.toInt, char.charAt(0), password)
+    Data(low.toInt, high.toInt, char.head, password)
   }
 
   def validPassword(data: Data): Boolean = {
