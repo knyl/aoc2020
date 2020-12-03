@@ -5,9 +5,7 @@ object Day3 {
   def countTrees(stepX: Int, stepY: Int, map: List[String]): Int = {
     val ys = Range(stepY, map.length, stepY)
     val xs = Range(stepX, ys.length * stepX + stepX, stepX)
-    xs.zip(ys)
-      .map(isTree(_, map))
-      .count(_ == true)
+    xs.zip(ys).count(isTree(_, map))
   }
 
   def isTree(pos: (Int, Int), map: List[String]): Boolean = {
