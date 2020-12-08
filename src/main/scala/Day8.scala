@@ -30,9 +30,9 @@ object Day8 {
     if (lines(ind).instr == "acc")
       return solve2(lines, ind + 1)
     val updatedLines = lines.updated(ind, Instruction(swapOperation(lines(ind).instr), lines(ind).data))
-    val res = solve(0, 0, updatedLines, Set.empty)
-    if (res._2)
-      res._1
+    val (acc, executedLastInstruction) = solve(lines = updatedLines)
+    if (executedLastInstruction)
+      acc
     else
       solve2(lines, ind + 1)
   }
