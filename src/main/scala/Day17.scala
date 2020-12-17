@@ -3,85 +3,52 @@ import scala.io.Source
 
 object Day17 {
 
-  case class Pos(x: Int, y: Int, z: Int, w: Int)
-
-  def printMap(map: Map[Pos, Boolean]): Unit = {
-    val xMax = map.keys.map(_.x).max
-    val xMin = map.keys.map(_.x).min
-    val yMax = map.keys.map(_.y).max
-    val yMin = map.keys.map(_.y).min
-    val zMax = map.keys.map(_.z).max
-    val zMin = map.keys.map(_.z).min
-    for (z <- zMin to zMax) {
-      println("Level: " + z)
-
-      for (y <- yMin to yMax) {
-        for (x <- xMin to xMax) {
-          val c = if (map(Pos(x, y, z, 0))) '#' else '.'
-          print(c)
-        }
-        println()
-      }
-      println()
-    }
-    println()
+  case class Pos(x: Int, y: Int, z: Int = 0, w: Int = 0) {
+    def +(that: Pos): Pos = Pos(x + that.x, y + that.y, z + that.z, w + that.w)
   }
 
   @tailrec
-  private def parse(lines: List[String], map: Map[Pos, Boolean] = Map.empty, y: Int = 0): Map[Pos, Boolean] = {
+  private def parse(lines: List[String], map: Seq[Pos] = List.empty, y: Int = 0): Seq[Pos] = {
     if (lines.isEmpty)
       return map
 
-    val newMap = lines.head.indices.map(i => Pos(i, y, 0, 0) -> (lines.head(i) == '#')).toMap
+    val newMap = lines.head.indices.flatMap(x => if (lines.head(x) == '#') Some(Pos(x, y)) else None)
     parse(lines.tail, map ++ newMap, y + 1)
   }
 
-  private def getActiveNeighbours(pos: Pos, state: Map[Pos, Boolean]) = {
-    val n = getNeighbourPos(pos).map(state.getOrElse(_, false)).count(_ == true)
-    n
-  }
-
   private def getNeighbourPos(pos: Pos) = {
-    val n = List.tabulate(3, 3, 3, 3)((i, j, k, l) => (pos.x - 1 + i, pos.y - 1 + j, pos.z - 1 + k, pos.w - 1 + l)).flatten.flatten.flatten.map { case (x, y, z, w) => Pos(x, y, z, w) }
-    n.filter(_ != pos)
+    val nums = -1 to 1
+    val neighbours = for (x <- nums; y <- nums; z <- nums) yield Pos(x, y, z) + pos
+    neighbours.filter(_ != pos)
   }
 
-  private def getNextCubeState(cube: (Pos, Boolean), state: Map[Pos, Boolean]) = {
-    val activeNeighbours = getActiveNeighbours(cube._1, state)
-    if (cube._2)
-      activeNeighbours >= 2 && activeNeighbours <= 3
+  private def getNeighbourPos2(pos: Pos) = {
+    val nums = -1 to 1
+    val neighbours = for (x <- nums; y <- nums; z <- nums; w <- nums) yield Pos(x, y, z, w) + pos
+    neighbours.filter(_ != pos)
+  }
+
+  private def getNextCubeState(cube: Pos, state: Set[Pos], neighbourFun: Pos => Seq[Pos]) = {
+    val activeNeighbours = neighbourFun(cube).count(state.contains)
+    if ((state.contains(cube) && Set(2, 3).contains(activeNeighbours)) || (!state.contains(cube) && activeNeighbours == 3))
+      Some(cube)
     else
-      activeNeighbours == 3
-  }
-
-  // This should only fetch the outer shell of positions, but let's try this first since it's easier
-  private def getAllPositionsOneLayerOut(positions: Iterable[Pos]) = {
-    val xMin = positions.minBy(_.x).x - 1
-    val xMax = positions.maxBy(_.x).x + 1
-    val yMin = positions.minBy(_.y).y - 1
-    val yMax = positions.maxBy(_.y).y + 1
-    val zMin = positions.minBy(_.z).z - 1
-    val zMax = positions.maxBy(_.z).z + 1
-    val wMin = positions.minBy(_.w).w - 1
-    val wMax = positions.maxBy(_.w).w + 1
-    (wMin to wMax).flatMap(w => (zMin to zMax).flatMap(z => (yMin to yMax).flatMap(y => (xMin to xMax).map(x => Pos(x, y, z, w))))).toList
+      None
   }
 
   @tailrec
-  private def solve1(state: Map[Pos, Boolean], maxRounds: Int, round: Int = 0): Int = {
+  private def solve(state: Set[Pos], maxRounds: Int, neighbourFun: Pos => Seq[Pos], round: Int = 0): Int = {
     if (maxRounds == round)
-      return state.values.count(_ == true)
-    val shellPositions = getAllPositionsOneLayerOut(state.keys)
-    val updatedState = shellPositions.foldLeft(state)((acc, pos) => if (acc.contains(pos)) acc else acc + (pos -> false))
-    val nextState = updatedState.foldLeft(Map.empty: Map[Pos, Boolean])((s, cube) => s + (cube._1 -> getNextCubeState(cube, updatedState)))
-    solve1(nextState, maxRounds, round + 1)
+      return state.size
+    val positionsWithNeighbours = state.flatMap(neighbourFun) union state
+    val nextState = positionsWithNeighbours.flatMap(getNextCubeState(_, state, neighbourFun))
+    solve(nextState, maxRounds, neighbourFun, round + 1)
   }
-
 
   def main(args: Array[String]): Unit = {
     val lines = Source.fromResource("input17.txt").getLines.toList
     val initialState = parse(lines)
-    println("Part1: " + solve1(initialState, 6))
+    println("Part1: " + solve(initialState.toSet, 6, getNeighbourPos))
+    println("Part2: " + solve(initialState.toSet, 6, getNeighbourPos2))
   }
-
 }
